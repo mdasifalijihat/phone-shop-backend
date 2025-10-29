@@ -147,3 +147,24 @@ export const verify = async (req, res) => {
 };
 
 
+export const reVerify = async (req, res) => {
+
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "User not found" });
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
+      expiresIn: "10m",
+    });
+    verifyEmail(token, email); // Call the email verification function
+  }
+  catch (error) {
+
+  }
+
+}
+
