@@ -161,6 +161,10 @@ export const reVerify = async (req, res) => {
       expiresIn: "10m",
     });
     verifyEmail(token, email); // Call the email verification function
+    user.token = token;
+    await user.save();
+    return res.status(200).json({ success: true, message: "Verification email sent", token });
+
   }
   catch (error) {
 
