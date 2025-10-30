@@ -33,7 +33,7 @@ export const isAuthenticated = async (req, res, next) => {
                 message: "User not found",
             });
         }
-
+        req.user = user;
         req.id = user._id;
         next();
     } catch (error) {
@@ -44,4 +44,24 @@ export const isAuthenticated = async (req, res, next) => {
         });
     }
 };
-export default isAuthenticated;  
+export default isAuthenticated;
+
+
+// is admin 
+export const isAdmin = async (req, res, next) => {
+    try {
+        // Check if user is attached to request
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: "Not authenticated" });
+        }
+
+        // Check role
+        if (req.user.role !== "admin") {
+            return res.status(403).json({ success: false, message: "Access denied. Admins only." });
+        }
+
+        next(); // User is admin, continue
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+    }
+};
