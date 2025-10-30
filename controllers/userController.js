@@ -237,12 +237,11 @@ export const login = async (req, res) => {
 
 
 // logout controller to be added later
-// export const logout = async (req, res) => {
-//   try {
-//    const userId = req.id
-
-//   }
-//   catch (error) {
-//     return res.status(500).json({ success: false, message: "Server Error", error: error.message });
-//   }
-// }
+export const logout = async (req, res) => {
+  try {
+   const userId = req.id
+  }
+  catch (error) {
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+}
