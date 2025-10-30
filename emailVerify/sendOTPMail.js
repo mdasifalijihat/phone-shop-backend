@@ -1,40 +1,40 @@
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 
-export const sendOTPMail = async (token, email) => {
+export const sendOTPMail = async (email, otp) => {
+  try {
+    if (!email) {
+      throw new Error("No recipient email provided");
+    }
+
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.MAIL_USER,
-            pass: process.env.MAIL_PASS
-        }
+      service: 'gmail',
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
     });
 
     const mailConfigurations = {
-
-        // It should be a string of sender/server email
-        from: process.env.MAIL_USER,
-        to: email,
-        subject: 'Password Reset OTP',
-        html:`<p>Hi! There, You have recently requested to reset your password.</p>
-           <p>Please use the following OTP to reset your password:</p>
-           <h2>${token}</h2>
-           <p>This OTP is valid for 10 minutes.</p>
-           <p>If you did not request a password reset, please ignore this email.</p>
-           <p>Thanks</p>
-        `
+      from: `"Mobile shop " <${process.env.MAIL_USER}>`,
+      to: email,
+      subject: 'Password Reset OTP',
+      html: `
+        <p>Hi there,</p>
+        <p>You have requested to reset your password.</p>
+        <p>Your One-Time Password (OTP) is:</p>
+        <h2 style="color:#1E88E5;">${otp}</h2>
+        <p>This OTP is valid for <strong>10 minutes</strong>.</p>
+        <p>If you did not request this, please ignore this email.</p>
+        <p>Thanks,<br/>Kindergarten School Team</p>
+      `,
     };
 
-    transporter.sendMail(mailConfigurations, function (error, info) {
-        if (error) throw Error(error);
-        console.log('Email Sent Successfully');
-        console.log(info);
-    });
-
-
-}
-
-
-
-
-
+    const info = await transporter.sendMail(mailConfigurations);
+    console.log("✅ Email Sent Successfully to:", email);
+    return info;
+  } catch (error) {
+    console.error("❌ Error sending OTP mail:", error.message);
+    throw error;
+  }
+};

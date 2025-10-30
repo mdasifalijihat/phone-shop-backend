@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { verifyEmail } from "../emailVerify/verifyEmail.js";
 import sessionModel from "../models/sessionModel.js";
+import { sendOTPMail } from "../emailVerify/sendOTPMail.js";
 
 export const register = async (req, res) => {
   try {
@@ -270,6 +271,67 @@ export const forgotPassword = async (req, res) => {
     });
     // Send email with the token (implementation not shown here)
     return res.status(200).json({ success: true, message: "Password reset email sent", token });
+  }
+  catch (error) {
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+}
+
+// verify OTP and reset password controllers to be added later
+
+export const verifyOTP = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    const email = req.params.email;
+    if (!otp) {
+      return res.status(400).json({ success: false, message: "OTP is required" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "User not found" });
+    }
+    if (user.otp !== otp || user.otpExpiry < Date.now()) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+    }
+    if (user.otpExpiry < Date.now()) {
+      return res.status(400).json({ success: false, message: "OTP has expired" });
+    }
+    if (otp !== user.otp) {
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
+    }
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+    return res.status(200).json({ success: true, message: "OTP verified successfully" });
+  }
+  catch (error) {
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+}
+
+// change password controller
+export const changePassword = async (req, res) => {
+  try {
+    const { newPassword, confirmPassword } = req.body;
+    const email = req.params.email;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "User not found" });
+    }
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "all field required" });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Password do not match" });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+    return res.status(200).json({ success: true, message: "Password reset successfully" });
+
   }
   catch (error) {
     return res.status(500).json({ success: false, message: "Server Error", error: error.message });
