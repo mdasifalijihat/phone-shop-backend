@@ -239,12 +239,40 @@ export const login = async (req, res) => {
 // logout controller to be added later
 export const logout = async (req, res) => {
   try {
-   const userId = req.id
-   await sessionModel.deleteOne({ userId: userId });
-   await User.findByIdAndUpdate(userId, { isLoggedIn: false });
-   return res.status(200).json({ success: true, message: "Logged out successfully" }); 
+    const userId = req.id
+    await sessionModel.deleteOne({ userId: userId });
+    await User.findByIdAndUpdate(userId, { isLoggedIn: false });
+    return res.status(200).json({ success: true, message: "Logged out successfully" });
   }
   catch (error) {
     return res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
 }
+
+
+// forgotPassword and resetPassword controllers to be added later
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "User not found" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
+    await user.save();
+    await sendOTPMail(email, otp); // Function to send OTP email (implementation not shown here)
+    const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
+      expiresIn: "10m",
+    });
+    // Send email with the token (implementation not shown here)
+    return res.status(200).json({ success: true, message: "Password reset email sent", token });
+  }
+  catch (error) {
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+}
+
