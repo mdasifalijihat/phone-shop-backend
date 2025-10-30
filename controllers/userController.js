@@ -2,6 +2,7 @@ import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { verifyEmail } from "../emailVerify/verifyEmail.js";
+import sessionModel from "../models/sessionModel.js";
 
 export const register = async (req, res) => {
   try {
@@ -163,12 +164,85 @@ export const reVerify = async (req, res) => {
     verifyEmail(token, email); // Call the email verification function
     user.token = token;
     await user.save();
-    return res.status(200).json({ success: true, message: "Verification email sent", token });
+    return res.status(200).json({ success: true, message: "Verification email sent", token: user.token });
 
   }
   catch (error) {
-
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
 
 }
 
+// isLogin middleware will be added later
+
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+    // email verification check will be added later
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    // Password verification
+    const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+    // Email verification check
+    if (!existingUser.isVerified) {
+      return res.status(401).json({
+        success: false,
+        message: "Email not verified",
+      });
+    }
+
+
+    // Generate JWT token for login
+    const accessToken = jwt.sign({ id: existingUser._id }, process.env.SECRET_KEY, {
+      expiresIn: "1d",
+    });
+
+    const refreshToken = jwt.sign({ id: existingUser._id }, process.env.SECRET_KEY, {
+      expiresIn: "1d",
+    });
+
+    existingUser.isLoggedIn = true;
+    await existingUser.save();
+
+    // user delete existing session if exists
+    const existingSession = await sessionModel.findOne({ userId: existingUser._id });
+    if (existingSession) {
+      await sessionModel.deleteOne({ userId: existingUser._id });
+    }
+
+    await sessionModel.create({
+      userId: existingUser._id,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    })
+    return res.status(200).json({
+      success: true, message: `Welcome back ${existingUser.firstName}`,
+      user: existingUser,
+      accessToken,
+      refreshToken
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+}
+
+
+// logout controller to be added later
+// export const logout = async (req, res) => {
+//   try {
+//    const userId = req.id
+
+//   }
+//   catch (error) {
+//     return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+//   }
+// }
