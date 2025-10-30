@@ -240,6 +240,9 @@ export const login = async (req, res) => {
 export const logout = async (req, res) => {
   try {
    const userId = req.id
+   await sessionModel.deleteOne({ userId: userId });
+   await User.findByIdAndUpdate(userId, { isLoggedIn: false });
+   return res.status(200).json({ success: true, message: "Logged out successfully" }); 
   }
   catch (error) {
     return res.status(500).json({ success: false, message: "Server Error", error: error.message });
